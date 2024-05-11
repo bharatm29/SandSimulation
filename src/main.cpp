@@ -1,5 +1,4 @@
 #include <functional>
-#include <iostream>
 #include <random>
 #include <raylib.h>
 #include <time.h>
@@ -10,7 +9,7 @@ using std::vector;
 #define WIDTH 800
 #define HEIGHT 600
 
-#define CELL_WIDTH 10
+#define CELL_WIDTH 5
 #define CELL_HEIGHT CELL_WIDTH
 
 #define COLS WIDTH / CELL_WIDTH
@@ -25,43 +24,86 @@ float gen_random_float(float min, float max) {
     return r();
 }
 
-int calculateAliveNeighbors(const int r, const int c, vector<vector<int>> &v) {
-    int count{0};
-
-    vector<std::pair<int, int>> dirs = {{0, -1},  {0, 1},  {-1, 0}, {1, 0},
-                                        {-1, -1}, {-1, 1}, {1, -1}, {1, 1}};
-
-    for (const std::pair dir : dirs) {
-        const int nr = r + dir.first;
-        const int nc = c + dir.second;
-
-        if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
-            if (v[nr][nc] == 1) {
-                count++;
-            }
-        }
-    }
-
-    return count;
-}
-
 void updateState(vector<vector<int>> &v) {
     vector<vector<int>> vCopy = v;
     for (int r = 0; r < ROWS; r++) {
         for (int c = 0; c < COLS; c++) {
-            const int aliveNeighbours = calculateAliveNeighbors(r, c, vCopy);
-            if (v[r][c] == 0) {
-                if (aliveNeighbours == 3) {
-                    v[r][c] = 1;
+            if (vCopy[r][c] == 1) {
+                int nr = r;
+                int nc = c;
+
+                std::pair<int, int> d0, d1;
+
+                if (gen_random_float(0.0f, 1.0f) < 0.5f) {
+                    d0 = {r + 1, c + 1};
+                    d1 = {r + 1, c + (-1)};
+                } else {
+                    d0 = {r + 1, c + (-1)};
+                    d1 = {r + 1, c + 1};
                 }
-            } else {
-                if (aliveNeighbours < 2) {
+
+                if (r + 1 < ROWS && vCopy[r + 1][c] == 0) {
                     v[r][c] = 0;
-                } else if (aliveNeighbours == 2 || aliveNeighbours == 3) {
-                    v[r][c] = 1;
-                } else if (aliveNeighbours > 3) {
+                    nr = r + 1;
+                    nc = c;
+                } else if ((d0.first < ROWS && d0.second < COLS) &&
+                           vCopy[d0.first][d0.second] == 0) {
                     v[r][c] = 0;
+                    nr = d0.first;
+                    nc = d0.second;
+                } else if ((d1.first < ROWS && d1.second < COLS) &&
+                           vCopy[d1.first][d1.second] == 0) {
+                    v[r][c] = 0;
+                    nr = d1.first;
+                    nc = d1.second;
                 }
+
+                v[nr][nc] = 1;
+            } else if (vCopy[r][c] == 2) {
+                int nr = r;
+                int nc = c;
+
+                std::pair<int, int> d0, d1, d2, d3;
+
+                if (gen_random_float(0.0f, 1.0f) < 0.5f) {
+                    d0 = {r + 1, c + 1};
+                    d1 = {r + 1, c + (-1)};
+                    d2 = {r, c + 1};
+                    d3 = {r, c + (-1)};
+                } else {
+                    d0 = {r + 1, c + (-1)};
+                    d1 = {r + 1, c + 1};
+                    d2 = {r, c + (-1)};
+                    d3 = {r, c + 1};
+                }
+
+                if (r + 1 < ROWS && vCopy[r + 1][c] == 0) {
+                    v[r][c] = 0;
+                    nr = r + 1;
+                    nc = c;
+                } else if ((d0.first < ROWS && d0.second < COLS) &&
+                           vCopy[d0.first][d0.second] == 0) {
+                    v[r][c] = 0;
+                    nr = d0.first;
+                    nc = d0.second;
+                } else if ((d1.first < ROWS && d1.second < COLS) &&
+                           vCopy[d1.first][d1.second] == 0) {
+                    v[r][c] = 0;
+                    nr = d1.first;
+                    nc = d1.second;
+                } else if ((r != ROWS - 1 && d2.first < ROWS && d2.second < COLS) &&
+                           vCopy[d2.first][d2.second] == 0) {
+                    v[r][c] = 0;
+                    nr = d2.first;
+                    nc = d2.second;
+                } else if ((r != ROWS - 1 && d3.first < ROWS && d3.second < COLS) &&
+                           vCopy[d3.first][d3.second] == 0) {
+                    v[r][c] = 0;
+                    nr = d3.first;
+                    nc = d3.second;
+                }
+
+                v[nr][nc] = 2;
             }
         }
     }
@@ -71,10 +113,10 @@ int main() {
     SetConfigFlags(FLAG_MSAA_4X_HINT);
     InitWindow(WIDTH, HEIGHT, "Sand Simulation");
 
-    SetTargetFPS(60);
+    SetTargetFPS(120);
 
     bool eraseMode = false;
-    bool animateMode = false;
+    bool waterMode = false;
     unsigned int frameCounter = 0;
 
     vector<vector<int>> v(ROWS, vector<int>(COLS, 0));
@@ -91,44 +133,46 @@ int main() {
                 eraseMode = false;
             }
 
-            if (IsKeyPressed(KEY_SPACE)) {
-                animateMode = !animateMode;
+            if (IsKeyPressed(KEY_ENTER)) {
+                v.clear();
+                v = vector<vector<int>>(ROWS, vector<int>(COLS, 0));
             }
 
-            if (animateMode) {
-                frameCounter++;
+            if (IsKeyPressed(KEY_SPACE)) {
+                waterMode = !waterMode;
             }
 
             if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
                 const int cellx = GetMouseX() / CELL_WIDTH;
                 const int celly = GetMouseY() / CELL_HEIGHT;
 
-                v[celly][cellx] = eraseMode ? 0 : 1;
+                if (eraseMode) {
+                    v[celly][cellx] = 0;
+                } else
+
+                    if (waterMode) {
+                    v[celly][cellx] = 2;
+                } else {
+                    v[celly][cellx] = 1;
+                }
             }
 
             for (int r = 0; r < ROWS; r++) {
                 for (int c = 0; c < COLS; c++) {
+                    Vector2 position = Vector2{.x = (float)CELL_WIDTH * c,
+                                               .y = (float)CELL_HEIGHT * r};
+
+                    Vector2 size = Vector2{.x = CELL_WIDTH, .y = CELL_HEIGHT};
+
                     if (v[r][c] == 1) {
-                        Vector2 position = Vector2{.x = (float)CELL_WIDTH * c,
-                                                   .y = (float)CELL_HEIGHT * r};
-
-                        Vector2 size =
-                            Vector2{.x = CELL_WIDTH, .y = CELL_HEIGHT};
-
-                        DrawRectangleV(position, size, RED);
-
-                        // FIXME: DrawRectangleLines(0, 0, CELL_WIDTH,
-                        // CELL_HEIGHT, RED);
+                        DrawRectangleV(position, size, GOLD);
+                    } else if (v[r][c] == 2) {
+                        DrawRectangleV(position, size, BLUE);
                     }
                 }
             }
 
-            if (animateMode && frameCounter == 30) {
-                updateState(v);
-                frameCounter = 0;
-            } else if (!animateMode && IsKeyPressed(KEY_ENTER)) {
-                updateState(v);
-            }
+            updateState(v);
         }
 
         EndDrawing();
