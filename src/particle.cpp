@@ -1,41 +1,64 @@
-#include <iostream>
+#include <functional>
+#include <optional>
+#include <random>
 #include <raylib.h>
+#include <time.h>
 #include <vector>
 using std::vector;
 
-/*
-/// Returns a random available neighbor of (x, y) if any.
-/// Searches x-1 and x+1 at a y-coordinate of y + y_offset
-fn rand_available_neighbor(
-    sandbox: &mut Sandbox,
-    x: usize,
-    y: usize,
-    y_offset: isize,
-) -> Option<(usize, usize)> {
-    // Check whether the left and right paths to candidate cells are free
-    let left_free = x != 0
-        && (y_offset == 0 || sandbox[x - 1][(y as isize + y_offset) as
-usize].is_none())
-        && sandbox[x - 1][y].is_none();
-    let right_free = x != SANDBOX_WIDTH - 1
-        && (y_offset == 0 || sandbox[x + 1][(y as isize + y_offset) as
-usize].is_none())
-        && sandbox[x + 1][y].is_none();
-    if left_free || right_free {
-        // If both are free, pick one at random, else pick the free one
-        let diagonal_x = if left_free && right_free {
-            [x - 1, x + 1][sandbox.rng.gen_range(0..2)]
-        } else if left_free {
-            x - 1
+float gen_random_float(float min, float max) {
+    typedef std::mt19937 Engine;
+    typedef std::uniform_real_distribution<float> Distribution;
+
+    auto r =
+        std::bind(Distribution(min, max), Engine((unsigned int)time(NULL)));
+    return r();
+}
+
+int gen_random_int(int min, int max) {
+    typedef std::mt19937 Engine;
+    typedef std::uniform_int_distribution<int> Distribution;
+
+    auto r =
+        std::bind(Distribution(min, max), Engine((unsigned int)time(NULL)));
+    return r();
+}
+
+class Particle; // Forward declaration of Particle class
+
+// I stole(yes) this function from:
+// https://github.com/JMS55/sandbox/blob/master/src/behavior.rs
+std::optional<std::pair<int, int>>
+rand_available_neighbor(const int r, const int c, const int offsetr,
+                        vector<vector<Particle *>> &v) {
+    const bool left_free = r != 0 &&
+                           (offsetr == 0 || v[r + offsetr][c - 1] == nullptr) &&
+                           v[r][c - 1] == nullptr;
+
+    const bool right_free =
+        r != 0 && (offsetr == 0 || v[r + offsetr][c + 1] == nullptr) &&
+        v[r][c + 1] == nullptr;
+
+    if (left_free || right_free) {
+        int newC = c;
+
+        if (left_free && right_free) {
+            if (gen_random_float(0.f, 1.f) < 0.5f) {
+                newC = c - 1;
+            } else {
+                newC = c + 1;
+            }
+        } else if (left_free) {
+            newC = c - 1;
         } else {
-            x + 1
-        };
-        Some((diagonal_x, (y as isize + y_offset) as usize))
+            newC = c + 1;
+        }
+
+        return std::pair<int, int>(r + offsetr, newC);
     } else {
-        None
+        return std::nullopt;
     }
 }
-*/
 
 class Particle {
   protected:
@@ -45,7 +68,16 @@ class Particle {
 
   public:
     Particle() {}
-    virtual void draw(const int CELL_WIDTH, const int CELL_HEIGHT) {}
+
+    void draw(const int CELL_WIDTH, const int CELL_HEIGHT) {
+        Vector2 position = Vector2{.x = (float)CELL_WIDTH * this->c,
+                                   .y = (float)CELL_HEIGHT * this->r};
+
+        Vector2 size = Vector2{.x = (float)CELL_WIDTH, .y = (float)CELL_HEIGHT};
+
+        DrawRectangleV(position, size, this->color);
+    }
+
     virtual void update(vector<vector<Particle *>> &original,
                         vector<vector<Particle *>> &copy, const int ROWS,
                         const int COLS) {}
@@ -59,40 +91,79 @@ class Sand : public Particle {
         this->color = GOLD;
     }
 
-    void draw(const int CELL_WIDTH, const int CELL_HEIGHT) {
-        Vector2 position = Vector2{.x = (float)CELL_WIDTH * this->c,
-                                   .y = (float)CELL_HEIGHT * this->r};
+    void update(vector<vector<Particle *>> &original,
+                vector<vector<Particle *>> &old, const int ROWS,
+                const int COLS) {
 
-        Vector2 size = Vector2{.x = (float)CELL_WIDTH, .y = (float)CELL_HEIGHT};
+        if (r + 1 < ROWS) {
+            // move down if a spot is available
+            if (!old[r + 1][c]) {
+                original[r][c] = nullptr;
+                original[r + 1][c] = this;
+                this->r = this->r + 1;
+            } else if (std::optional<std::pair<int, int>> random_left_right =
+                           rand_available_neighbor(r, c, 1, old);
+                       random_left_right.has_value()) {
+                const int nr = random_left_right.value().first;
+                const int nc = random_left_right.value().second;
 
-        DrawRectangleV(position, size, this->color);
+                original[r][c] = nullptr;
+                original[nr][nc] = this;
+                this->r = nr;
+                this->c = nc;
+            }
+        }
+
+        original[this->r][this->c] =
+            this; // otherwise just stay where we were before
+    }
+};
+
+class Water : public Particle {
+  public:
+    Water(const int _r, const int _c) {
+        this->r = _r;
+        this->c = _c;
+        this->color = BLUE;
     }
 
     void update(vector<vector<Particle *>> &original,
                 vector<vector<Particle *>> &old, const int ROWS,
                 const int COLS) {
 
-        // move down if a spot is available
-        if (r + 1 < ROWS && !old[r + 1][c]) {
-            original[r][c] = nullptr;
-            original[r + 1][c] = this;
-            this->r = this->r + 1;
-        } else if (r + 1 < ROWS && c - 1 < COLS &&
-                   old[r + 1][c - 1] ==
-                       nullptr) { // check for right diagonal neighbour
-            original[r][c] = nullptr;
-            original[r + 1][c - 1] = this;
-            this->r = this->r + 1;
-            this->c = this->c - 1;
-        } else if (r + 1 < ROWS && c + 1 < COLS &&
-                   old[r + 1][c + 1] ==
-                       nullptr) { // check for right diagonal neighbour
-            original[r][c] = nullptr;
-            original[r + 1][c + 1] = this;
-            this->r = this->r + 1;
-            this->c = this->c + 1;
-        } else { // otherwise just stay where we were before
-            original[this->r][this->c] = this;
+        if (r + 1 < ROWS) {
+            // move down if a spot is available
+            if (!old[r + 1][c]) {
+                original[r][c] = nullptr;
+                original[r + 1][c] = this;
+                this->r = this->r + 1;
+            } else if (std::optional<std::pair<int, int>> random_left_right =
+                           rand_available_neighbor(r, c, 1, old);
+                       random_left_right.has_value()) {
+                const int nr = random_left_right.value().first;
+                const int nc = random_left_right.value().second;
+
+                original[r][c] = nullptr;
+                original[nr][nc] = this;
+                this->r = nr;
+                this->c = nc;
+            } else if (std::optional<std::pair<int, int>> random_left_right =
+                           rand_available_neighbor(r, c, 0, old);
+                       random_left_right.has_value()) {
+                const int nr = random_left_right.value().first;
+                const int nc = random_left_right.value().second;
+
+                original[r][c] = nullptr;
+                original[nr][nc] = this;
+                this->r = nr;
+                this->c = nc;
+            }
+            // FIXME: Change the update such that the water keeps moving the
+            // same direction untill it can and not change the direction mid way
+            // due to randomness
         }
+
+        original[this->r][this->c] =
+            this; // otherwise just stay where we were before
     }
 };

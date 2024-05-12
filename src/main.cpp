@@ -1,8 +1,5 @@
 #include "./particle.cpp"
-#include <functional>
-#include <random>
 #include <raylib.h>
-#include <time.h>
 #include <vector>
 
 using std::vector;
@@ -10,23 +7,16 @@ using std::vector;
 #define WIDTH 800
 #define HEIGHT 600
 
-#define CELL_WIDTH 5
+#define CELL_WIDTH 40
 #define CELL_HEIGHT CELL_WIDTH
 
 #define COLS WIDTH / CELL_WIDTH
 #define ROWS HEIGHT / CELL_HEIGHT
 
-float gen_random_float(float min, float max) {
-    typedef std::mt19937 Engine;
-    typedef std::uniform_real_distribution<float> Distribution;
+#define DEBUG_MODE true
 
-    auto r =
-        std::bind(Distribution(0.0f, 1.0f), Engine((unsigned int)time(NULL)));
-    return r();
-}
-
-vector<vector<Particle *>> updateState(vector<vector<Particle *>>& vCopy) {
-    vector<vector<Particle *>> v(ROWS, vector<Particle*>(COLS, nullptr));
+vector<vector<Particle *>> updateState(vector<vector<Particle *>> &vCopy) {
+    vector<vector<Particle *>> v(ROWS, vector<Particle *>(COLS, nullptr));
 
     for (int r = 0; r < ROWS; r++) {
         for (int c = 0; c < COLS; c++) {
@@ -79,15 +69,14 @@ int main() {
 
                 if (eraseMode) {
                     v[celly][cellx] = nullptr;
-                } else
+                } else {
 
-                    /*
                     if (waterMode) {
-                        v[celly][cellx] = new Particle();
+                        v[celly][cellx] = new Water(celly, cellx);
                     } else {
-                    */
-                    v[celly][cellx] = new Sand(celly, cellx);
-                // }
+                        v[celly][cellx] = new Sand(celly, cellx);
+                    }
+                }
             }
 
             for (int r = 0; r < ROWS; r++) {
@@ -98,7 +87,13 @@ int main() {
                 }
             }
 
-            v = updateState(v);
+            if (DEBUG_MODE) {
+                if (IsKeyPressed(KEY_E)) {
+                    v = updateState(v);
+                }
+            } else {
+                v = updateState(v);
+            }
         }
 
         EndDrawing();
