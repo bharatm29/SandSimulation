@@ -29,6 +29,16 @@ vector<vector<Particle *>> updateState(vector<vector<Particle *>> &vCopy) {
     return v;
 }
 
+void set_keymaps(ParticleType &selectedParticle) {
+    if (IsKeyPressed(KEY_W)) {
+        selectedParticle = WATER;
+    } else if (IsKeyPressed(KEY_C)) {
+        selectedParticle = SMOKE;
+    } else if (IsKeyPressed(KEY_S)) {
+        selectedParticle = SAND;
+    }
+}
+
 int main() {
     SetConfigFlags(FLAG_MSAA_4X_HINT);
     InitWindow(WIDTH, HEIGHT, "Sand Simulation");
@@ -36,7 +46,7 @@ int main() {
     SetTargetFPS(120);
 
     bool eraseMode = false;
-    bool waterMode = false;
+    ParticleType selectedParticle = SAND;
     unsigned int frameCounter = 0;
 
     vector<vector<Particle *>> v(ROWS, vector<Particle *>(COLS, nullptr));
@@ -59,22 +69,29 @@ int main() {
                     ROWS, vector<Particle *>(COLS, nullptr));
             }
 
-            if (IsKeyPressed(KEY_SPACE)) {
-                waterMode = !waterMode;
-            }
+            set_keymaps(selectedParticle);
 
             if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
                 const int cellx = GetMouseX() / CELL_WIDTH;
                 const int celly = GetMouseY() / CELL_HEIGHT;
 
+                if (celly >= ROWS || cellx >= COLS) { // check if the cells are in bound or not
+                    break;
+                }
+
                 if (eraseMode) {
                     v[celly][cellx] = nullptr;
                 } else {
-
-                    if (waterMode) {
+                    switch (selectedParticle) {
+                    case WATER:
                         v[celly][cellx] = new Water(celly, cellx);
-                    } else {
+                        break;
+                    case SMOKE:
+                        v[celly][cellx] = new Smoke(celly, cellx);
+                        break;
+                    case SAND:
                         v[celly][cellx] = new Sand(celly, cellx);
+                        break;
                     }
                 }
             }

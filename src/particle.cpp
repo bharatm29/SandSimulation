@@ -83,6 +83,12 @@ class Particle {
                         const int COLS) {}
 };
 
+enum ParticleType {
+    SAND,
+    WATER,
+    SMOKE,
+};
+
 class Sand : public Particle {
   public:
     Sand(const int _r, const int _c) {
@@ -165,5 +171,40 @@ class Water : public Particle {
 
         original[this->r][this->c] =
             this; // otherwise just stay where we were before
+    }
+};
+
+class Smoke : public Particle {
+  public:
+    Smoke(const int _r, const int _c) {
+        this->r = _r;
+        this->c = _c;
+        this->color = BEIGE;
+    }
+
+    void update(vector<vector<Particle *>> &original,
+                vector<vector<Particle *>> &old, const int ROWS,
+                const int COLS) {
+
+        if (r - 1 >= 0) {
+            // move up if a spot is available
+            if (!old[r - 1][c]) {
+                original[r][c] = nullptr;
+                original[r - 1][c] = this;
+                this->r = this->r - 1;
+            } else if (std::optional<std::pair<int, int>> random_left_right =
+                           rand_available_neighbor(r, c, -1, old);
+                       random_left_right.has_value()) {
+                const int nr = random_left_right.value().first;
+                const int nc = random_left_right.value().second;
+
+                original[r][c] = nullptr;
+                original[nr][nc] = this;
+                this->r = nr;
+                this->c = nc;
+            }
+        }
+
+        original[r][c] = this; // otherwise just stay where we were before
     }
 };
