@@ -3,6 +3,6 @@ SRCDIR = src
 
 all: main
 
-main: $(SRCDIR)/main.cpp
+main: $(SRCDIR)/main.cpp $(SRCDIR)/particle.cpp
 	g++ -o main $(SRCDIR)/main.cpp $(CFLAGS)
 	./main
