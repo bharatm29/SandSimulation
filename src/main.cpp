@@ -36,6 +36,8 @@ void set_keymaps(ParticleType &selectedParticle) {
         selectedParticle = SMOKE;
     } else if (IsKeyPressed(KEY_S)) {
         selectedParticle = SAND;
+    } else if (IsKeyPressed(KEY_H)) {
+        selectedParticle =  SOLID;
     }
 }
 
@@ -91,6 +93,9 @@ int main() {
                         break;
                     case SAND:
                         v[celly][cellx] = new Sand(celly, cellx);
+                        break;
+                    case SOLID:
+                        v[celly][cellx] = new Solid(celly, cellx);
                         break;
                     }
                 }

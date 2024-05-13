@@ -87,6 +87,7 @@ enum ParticleType {
     SAND,
     WATER,
     SMOKE,
+    SOLID,
 };
 
 class Sand : public Particle {
@@ -181,8 +182,9 @@ class Smoke : public Particle {
         this->r = _r;
         this->c = _c;
         // 34°, 38%, 83%
-        this->color =
-            ColorFromHSV(30.f + gen_random_float(2.f, 12.f), .38f, .83f);
+        this->color = ColorAlpha(
+            ColorFromHSV(30.f + gen_random_float(2.f, 12.f), .38f, .83f),
+            gen_random_float(.15f, .20f));
     }
 
     void update(vector<vector<Particle *>> &original,
@@ -209,5 +211,29 @@ class Smoke : public Particle {
         }
 
         original[r][c] = this; // otherwise just stay where we were before
+    }
+};
+
+class Solid : public Particle {
+  public:
+    Solid(const int _r, const int _c) {
+        this->r = _r;
+        this->c = _c;
+        // 20°, 70%, 50%
+        this->color = ColorFromHSV(20.f, .70f, .50f);
+    }
+
+    void update(vector<vector<Particle *>> &original,
+                vector<vector<Particle *>> &old, const int ROWS,
+                const int COLS) {
+
+        // move up if a spot is available
+        if (r + 1 < ROWS && !old[r + 1][c]) {
+            original[r][c] = nullptr;
+            original[r + 1][c] = this;
+            this->r = this->r + 1;
+        } else { // do nothing
+            original[r][c] = this; // otherwise just stay where we were before
+        }
     }
 };
