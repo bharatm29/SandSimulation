@@ -78,9 +78,9 @@ class Particle {
         DrawRectangleV(position, size, this->color);
     }
 
-    virtual void update(vector<vector<Particle *>> &original,
+    void virtual update(vector<vector<Particle *>> &original,
                         vector<vector<Particle *>> &copy, const int ROWS,
-                        const int COLS) {}
+                        const int COLS) = 0;
 };
 
 enum ParticleType {
@@ -94,7 +94,8 @@ class Sand : public Particle {
     Sand(const int _r, const int _c) {
         this->r = _r;
         this->c = _c;
-        this->color = GOLD;
+        this->color =
+            ColorFromHSV(40.f + gen_random_float(2.f, 12.f), 1.f, 1.f);
     }
 
     void update(vector<vector<Particle *>> &original,
@@ -179,7 +180,9 @@ class Smoke : public Particle {
     Smoke(const int _r, const int _c) {
         this->r = _r;
         this->c = _c;
-        this->color = BEIGE;
+        // 34°, 38%, 83%
+        this->color =
+            ColorFromHSV(30.f + gen_random_float(2.f, 12.f), .38f, .83f);
     }
 
     void update(vector<vector<Particle *>> &original,

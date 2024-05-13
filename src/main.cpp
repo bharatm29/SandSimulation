@@ -7,13 +7,13 @@ using std::vector;
 #define WIDTH 800
 #define HEIGHT 600
 
-#define CELL_WIDTH 40
+#define CELL_WIDTH 5
 #define CELL_HEIGHT CELL_WIDTH
 
 #define COLS WIDTH / CELL_WIDTH
 #define ROWS HEIGHT / CELL_HEIGHT
 
-#define DEBUG_MODE true
+#define DEBUG_MODE false
 
 vector<vector<Particle *>> updateState(vector<vector<Particle *>> &vCopy) {
     vector<vector<Particle *>> v(ROWS, vector<Particle *>(COLS, nullptr));
