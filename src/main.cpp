@@ -1,7 +1,7 @@
 #include "./particle.cpp"
 #include <cassert>
-#include <iostream>
 #include <raylib.h>
+#include <string>
 #include <vector>
 
 using std::vector;
@@ -9,7 +9,7 @@ using std::vector;
 #define WIDTH 800
 #define HEIGHT 600
 
-#define PARTICLE_SPAWN_RADIUS 10
+#define PARTICLE_SPAWN_RADIUS 40
 
 #define COLS WIDTH  /* / CELL_WIDTH */
 #define ROWS HEIGHT /* / CELL_HEIGHT */
@@ -51,7 +51,7 @@ int main() {
     bool eraseMode = false;
     ParticleType selectedParticle = SAND;
 
-    long long waterParticles = 0;
+    long long particles = 0;
 
     vector<vector<Particle *>> v(COLS, vector<Particle *>(ROWS, nullptr));
 
@@ -96,13 +96,13 @@ int main() {
                         if (eraseMode) {
                             v[x][y] = nullptr;
                         } else if (v[x][y] == nullptr) {
+                            particles++;
                             switch (selectedParticle) {
                             case SAND:
                                 v[x][y] = new Sand(x, y);
                                 break;
                             case WATER:
                                 v[x][y] = new Water(x, y);
-                                waterParticles++;
                                 break;
                             case SMOKE:
                                 v[x][y] = new Smoke(x, y);
@@ -125,16 +125,14 @@ int main() {
             }
 
             if (DEBUG_MODE) {
-                if (IsKeyPressed(KEY_E)) {
+                if (IsKeyDown(KEY_E)) {
                     v = updateState(v);
                 }
             } else {
                 v = updateState(v);
             }
 
-            if (IsKeyPressed(KEY_RIGHT_SHIFT)) {
-                std::cout<<waterParticles<<"\n";
-            }
+            DrawText(std::to_string(particles).c_str(), 20, 20, 25, RED);
         }
 
         EndDrawing();

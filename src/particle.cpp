@@ -45,12 +45,14 @@ rand_available_neighbor(const int x, const int y, const int offsety,
 
     const bool right_free =
         x + 1 < WIDTH_R && (offsety == 0 || v[x + 1][y + offsety] == nullptr) &&
-        v[x + 1][y + offsety] == nullptr;
+        v[x + 1][y] == nullptr;
 
     if (left_free || right_free) {
         int newX = x;
 
         if (left_free && right_free) {
+            // FIXME: newX = x - 1;
+
             if (gen_random_float(0.f, 1.f) < 0.5f) {
                 newX = x - 1;
             } else {
@@ -107,7 +109,7 @@ class Sand : public Particle {
         this->x = _r;
         this->y = _c;
         this->color = ColorAlpha(
-            ColorFromHSV(40.f + gen_random_float(2.f, 12.f), 1.f, 1.f), 0);
+            ColorFromHSV(40.f + gen_random_float(2.f, 12.f), 1.f, 1.f), 255.f);
     }
 
     void update(vector<vector<Particle *>> &original,
@@ -178,6 +180,7 @@ class Water : public Particle {
             }
         }
 
+        // don't move down just go left or right
         if (std::optional<std::pair<int, int>> random_left_right =
                 rand_available_neighbor(x, y, 0, old);
             random_left_right.has_value()) {
@@ -193,6 +196,34 @@ class Water : public Particle {
 
             return;
         }
+
+        /*FIXME: remove later
+        if (x + 1 < WIDTH_R && !old[x + 1][y]) {
+
+            const int nx = x + 1;
+            const int ny = y;
+
+            original[x][y] = nullptr;
+            original[nx][ny] = this;
+
+            this->x = nx;
+            this->y = ny;
+
+            return;
+        } else if (x - 1 >= 0 && !old[x - 1][y]) {
+
+            const int nx = x - 1;
+            const int ny = y;
+
+            original[x][y] = nullptr;
+            original[nx][ny] = this;
+
+            this->x = nx;
+            this->y = ny;
+
+            return;
+        }
+        */
 
         original[this->x][this->y] =
             this; // otherwise just stay where we were before
