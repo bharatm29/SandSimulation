@@ -6,6 +6,11 @@
 #include <vector>
 using std::vector;
 
+// Although they are always the same value, we are redefining these macros.
+// FIXME: Separate the config vars into a header files
+#define WIDTH_R GetScreenWidth()
+#define HEIGHT_R GetScreenHeight()
+
 float gen_random_float(float min, float max) {
     typedef std::mt19937 Engine;
     typedef std::uniform_real_distribution<float> Distribution;
@@ -29,32 +34,32 @@ class Particle; // Forward declaration of Particle class
 // I stole(yes) this function from:
 // https://github.com/JMS55/sandbox/blob/master/src/behavior.rs
 std::optional<std::pair<int, int>>
-rand_available_neighbor(const int r, const int c, const int offsetr,
+rand_available_neighbor(const int x, const int y, const int offsety,
                         vector<vector<Particle *>> &v) {
-    const bool left_free = r != 0 &&
-                           (offsetr == 0 || v[r + offsetr][c - 1] == nullptr) &&
-                           v[r][c - 1] == nullptr;
+    const bool left_free = x != 0 &&
+                           (offsety == 0 || v[x - 1][y + offsety] == nullptr) &&
+                           v[x - 1][y] == nullptr;
 
     const bool right_free =
-        r != 0 && (offsetr == 0 || v[r + offsetr][c + 1] == nullptr) &&
-        v[r][c + 1] == nullptr;
+        x != v.size() && (offsety == 0 || v[x + 1][y + offsety] == nullptr) &&
+        v[x + 1][y + offsety] == nullptr;
 
     if (left_free || right_free) {
-        int newC = c;
+        int newX = x;
 
         if (left_free && right_free) {
             if (gen_random_float(0.f, 1.f) < 0.5f) {
-                newC = c - 1;
+                newX = x - 1;
             } else {
-                newC = c + 1;
+                newX = x + 1;
             }
         } else if (left_free) {
-            newC = c - 1;
+            newX = x - 1;
         } else {
-            newC = c + 1;
+            newX = x + 1;
         }
 
-        return std::pair<int, int>(r + offsetr, newC);
+        return std::pair<int, int>(newX, y + offsety);
     } else {
         return std::nullopt;
     }
@@ -62,25 +67,28 @@ rand_available_neighbor(const int r, const int c, const int offsetr,
 
 class Particle {
   protected:
-    int r;
-    int c;
+    int x;
+    int y;
     Color color;
 
   public:
     Particle() {}
 
-    void draw(const int CELL_WIDTH, const int CELL_HEIGHT) {
+    void draw() {
+        /* FIXME: REDUNDANT!!!
         Vector2 position = Vector2{.x = (float)CELL_WIDTH * this->c,
                                    .y = (float)CELL_HEIGHT * this->r};
 
         Vector2 size = Vector2{.x = (float)CELL_WIDTH, .y = (float)CELL_HEIGHT};
 
         DrawRectangleV(position, size, this->color);
+        */
+
+        DrawPixel(this->x, this->y, this->color);
     }
 
     void virtual update(vector<vector<Particle *>> &original,
-                        vector<vector<Particle *>> &copy, const int ROWS,
-                        const int COLS) = 0;
+                        vector<vector<Particle *>> &copy) = 0;
 };
 
 enum ParticleType {
@@ -93,36 +101,34 @@ enum ParticleType {
 class Sand : public Particle {
   public:
     Sand(const int _r, const int _c) {
-        this->r = _r;
-        this->c = _c;
+        this->x = _r;
+        this->y = _c;
         this->color =
             ColorFromHSV(40.f + gen_random_float(2.f, 12.f), 1.f, 1.f);
     }
 
     void update(vector<vector<Particle *>> &original,
-                vector<vector<Particle *>> &old, const int ROWS,
-                const int COLS) {
-
-        if (r + 1 < ROWS) {
+                vector<vector<Particle *>> &old) {
+        if (y + 1 < HEIGHT_R) {
             // move down if a spot is available
-            if (!old[r + 1][c]) {
-                original[r][c] = nullptr;
-                original[r + 1][c] = this;
-                this->r = this->r + 1;
+            if (!old[x][y + 1]) {
+                original[x][y] = nullptr;
+                original[x][y + 1] = this;
+                this->y = this->y + 1;
             } else if (std::optional<std::pair<int, int>> random_left_right =
-                           rand_available_neighbor(r, c, 1, old);
+                           rand_available_neighbor(x, y, 1, old);
                        random_left_right.has_value()) {
-                const int nr = random_left_right.value().first;
-                const int nc = random_left_right.value().second;
+                const int nx = random_left_right.value().first;
+                const int ny = random_left_right.value().second;
 
-                original[r][c] = nullptr;
-                original[nr][nc] = this;
-                this->r = nr;
-                this->c = nc;
+                original[x][y] = nullptr;
+                original[nx][ny] = this;
+                this->x = nx;
+                this->y = ny;
             }
         }
 
-        original[this->r][this->c] =
+        original[this->x][this->y] =
             this; // otherwise just stay where we were before
     }
 };
@@ -130,48 +136,47 @@ class Sand : public Particle {
 class Water : public Particle {
   public:
     Water(const int _r, const int _c) {
-        this->r = _r;
-        this->c = _c;
+        this->x = _r;
+        this->y = _c;
         this->color = BLUE;
     }
 
     void update(vector<vector<Particle *>> &original,
-                vector<vector<Particle *>> &old, const int ROWS,
-                const int COLS) {
+                vector<vector<Particle *>> &old) {
 
-        if (r + 1 < ROWS) {
+        if (y + 1 < HEIGHT_R) {
             // move down if a spot is available
-            if (!old[r + 1][c]) {
-                original[r][c] = nullptr;
-                original[r + 1][c] = this;
-                this->r = this->r + 1;
+            if (!old[x][y + 1]) {
+                original[x][y] = nullptr;
+                original[x][y + 1] = this;
+                this->y = this->y + 1;
             } else if (std::optional<std::pair<int, int>> random_left_right =
-                           rand_available_neighbor(r, c, 1, old);
+                           rand_available_neighbor(x, y, 1, old);
                        random_left_right.has_value()) {
                 const int nr = random_left_right.value().first;
                 const int nc = random_left_right.value().second;
 
-                original[r][c] = nullptr;
+                original[x][y] = nullptr;
                 original[nr][nc] = this;
-                this->r = nr;
-                this->c = nc;
+                this->x = nr;
+                this->y = nc;
             } else if (std::optional<std::pair<int, int>> random_left_right =
-                           rand_available_neighbor(r, c, 0, old);
+                           rand_available_neighbor(x, y, 0, old);
                        random_left_right.has_value()) {
                 const int nr = random_left_right.value().first;
                 const int nc = random_left_right.value().second;
 
-                original[r][c] = nullptr;
+                original[x][y] = nullptr;
                 original[nr][nc] = this;
-                this->r = nr;
-                this->c = nc;
+                this->x = nr;
+                this->y = nc;
             }
             // FIXME: Change the update such that the water keeps moving the
             // same direction untill it can and not change the direction mid way
             // due to randomness
         }
 
-        original[this->r][this->c] =
+        original[this->x][this->y] =
             this; // otherwise just stay where we were before
     }
 };
@@ -179,8 +184,8 @@ class Water : public Particle {
 class Smoke : public Particle {
   public:
     Smoke(const int _r, const int _c) {
-        this->r = _r;
-        this->c = _c;
+        this->x = _r;
+        this->y = _c;
         // 34°, 38%, 83%
         this->color = ColorAlpha(
             ColorFromHSV(30.f + gen_random_float(2.f, 12.f), .38f, .83f),
@@ -188,52 +193,50 @@ class Smoke : public Particle {
     }
 
     void update(vector<vector<Particle *>> &original,
-                vector<vector<Particle *>> &old, const int ROWS,
-                const int COLS) {
+                vector<vector<Particle *>> &old) {
 
-        if (r - 1 >= 0) {
+        if (y - 1 >= 0) {
             // move up if a spot is available
-            if (!old[r - 1][c]) {
-                original[r][c] = nullptr;
-                original[r - 1][c] = this;
-                this->r = this->r - 1;
+            if (!old[x][y - 1]) {
+                original[x][y] = nullptr;
+                original[x][y - 1] = this;
+                this->y = this->y - 1;
             } else if (std::optional<std::pair<int, int>> random_left_right =
-                           rand_available_neighbor(r, c, -1, old);
+                           rand_available_neighbor(x, y, -1, old);
                        random_left_right.has_value()) {
                 const int nr = random_left_right.value().first;
                 const int nc = random_left_right.value().second;
 
-                original[r][c] = nullptr;
+                original[x][y] = nullptr;
                 original[nr][nc] = this;
-                this->r = nr;
-                this->c = nc;
+                this->x = nr;
+                this->y = nc;
             }
         }
 
-        original[r][c] = this; // otherwise just stay where we were before
+        original[x][y] = this; // otherwise just stay where we were before
     }
 };
 
 class Solid : public Particle {
   public:
     Solid(const int _r, const int _c) {
-        this->r = _r;
-        this->c = _c;
+        this->x = _r;
+        this->y = _c;
         // 20°, 70%, 50%
         this->color = ColorFromHSV(20.f, .70f, .50f);
     }
 
     void update(vector<vector<Particle *>> &original,
-                vector<vector<Particle *>> &old, const int ROWS,
-                const int COLS) {
+                vector<vector<Particle *>> &old) {
 
-        // move up if a spot is available
-        if (r + 1 < ROWS && !old[r + 1][c]) {
-            original[r][c] = nullptr;
-            original[r + 1][c] = this;
-            this->r = this->r + 1;
-        } else { // do nothing
-            original[r][c] = this; // otherwise just stay where we were before
+        // move down if a spot is available
+        if (x + 1 < HEIGHT_R && !old[x + 1][y]) {
+            original[x][y] = nullptr;
+            original[x + 1][y] = this;
+            this->x = this->x + 1;
+        } else {                   // do nothing
+            original[x][y] = this; // otherwise just stay where we were before
         }
     }
 };

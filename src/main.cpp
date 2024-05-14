@@ -7,21 +7,20 @@ using std::vector;
 #define WIDTH 800
 #define HEIGHT 600
 
-#define CELL_WIDTH 5
-#define CELL_HEIGHT CELL_WIDTH
+#define PARTICLE_SPAWN_RADIUS 10
 
-#define COLS WIDTH / CELL_WIDTH
-#define ROWS HEIGHT / CELL_HEIGHT
+#define COLS WIDTH  /* / CELL_WIDTH */
+#define ROWS HEIGHT /* / CELL_HEIGHT */
 
 #define DEBUG_MODE false
 
 vector<vector<Particle *>> updateState(vector<vector<Particle *>> &vCopy) {
-    vector<vector<Particle *>> v(ROWS, vector<Particle *>(COLS, nullptr));
+    vector<vector<Particle *>> v(COLS, vector<Particle *>(ROWS, nullptr));
 
-    for (int r = 0; r < ROWS; r++) {
-        for (int c = 0; c < COLS; c++) {
-            if (vCopy[r][c] != nullptr) {
-                vCopy[r][c]->update(v, vCopy, ROWS, COLS);
+    for (int c = 0; c < COLS; c++) {
+        for (int r = 0; r < ROWS; r++) {
+            if (vCopy[c][r] != nullptr) {
+                vCopy[c][r]->update(v, vCopy);
             }
         }
     }
@@ -37,7 +36,7 @@ void set_keymaps(ParticleType &selectedParticle) {
     } else if (IsKeyPressed(KEY_S)) {
         selectedParticle = SAND;
     } else if (IsKeyPressed(KEY_H)) {
-        selectedParticle =  SOLID;
+        selectedParticle = SOLID;
     }
 }
 
@@ -51,7 +50,7 @@ int main() {
     ParticleType selectedParticle = SAND;
     unsigned int frameCounter = 0;
 
-    vector<vector<Particle *>> v(ROWS, vector<Particle *>(COLS, nullptr));
+    vector<vector<Particle *>> v(COLS, vector<Particle *>(ROWS, nullptr));
 
     while (!WindowShouldClose()) {
         BeginDrawing();
@@ -68,43 +67,54 @@ int main() {
             if (IsKeyPressed(KEY_ENTER)) {
                 v.clear();
                 v = vector<vector<Particle *>>(
-                    ROWS, vector<Particle *>(COLS, nullptr));
+                    COLS, vector<Particle *>(ROWS, nullptr));
             }
 
             set_keymaps(selectedParticle);
 
             if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-                const int cellx = GetMouseX() / CELL_WIDTH;
-                const int celly = GetMouseY() / CELL_HEIGHT;
+                // const int cellx = GetMouseX() / CELL_WIDTH;
+                // const int celly = GetMouseY() / CELL_HEIGHT;
 
-                if (celly >= ROWS || cellx >= COLS) { // check if the cells are in bound or not
+                const int cellx = GetMouseX();
+                const int celly = GetMouseY();
+
+                if (cellx < 0 || celly < 0 || cellx >= WIDTH ||
+                    celly >= HEIGHT) { // check if the cells are in bound or not
+                                       // FIXME: REDUNDANT?
                     break;
                 }
 
-                if (eraseMode) {
-                    v[celly][cellx] = nullptr;
-                } else {
-                    switch (selectedParticle) {
-                    case WATER:
-                        v[celly][cellx] = new Water(celly, cellx);
-                        break;
-                    case SMOKE:
-                        v[celly][cellx] = new Smoke(celly, cellx);
-                        break;
-                    case SAND:
-                        v[celly][cellx] = new Sand(celly, cellx);
-                        break;
-                    case SOLID:
-                        v[celly][cellx] = new Solid(celly, cellx);
-                        break;
+                for (int x = cellx;
+                     x < WIDTH && x < cellx + PARTICLE_SPAWN_RADIUS; x+=2) {
+                    for (int y = celly;
+                         y < HEIGHT && y < celly + PARTICLE_SPAWN_RADIUS; y+=2) {
+                        if (eraseMode) {
+                            v[x][y] = nullptr;
+                        } else {
+                            switch (selectedParticle) {
+                            case SAND:
+                                v[x][y] = new Sand(x, y);
+                                break;
+                            case WATER:
+                                v[x][y] = new Water(x, y);
+                                break;
+                            case SMOKE:
+                                v[x][y] = new Smoke(x, y);
+                                break;
+                            case SOLID:
+                                v[x][y] = new Solid(x, y);
+                                break;
+                            }
+                        }
                     }
                 }
             }
 
-            for (int r = 0; r < ROWS; r++) {
-                for (int c = 0; c < COLS; c++) {
-                    if (v[r][c] != nullptr) {
-                        v[r][c]->draw(CELL_WIDTH, CELL_HEIGHT);
+            for (int c = 0; c < COLS; c++) {
+                for (int r = 0; r < ROWS; r++) {
+                    if (v[c][r] != nullptr) {
+                        v[c][r]->draw();
                     }
                 }
             }
