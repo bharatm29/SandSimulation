@@ -1,4 +1,7 @@
+#include <cassert>
+#include <cstdlib>
 #include <functional>
+#include <iostream>
 #include <optional>
 #include <random>
 #include <raylib.h>
@@ -36,12 +39,12 @@ class Particle; // Forward declaration of Particle class
 std::optional<std::pair<int, int>>
 rand_available_neighbor(const int x, const int y, const int offsety,
                         vector<vector<Particle *>> &v) {
-    const bool left_free = x != 0 &&
+    const bool left_free = x - 1 >= 0 &&
                            (offsety == 0 || v[x - 1][y + offsety] == nullptr) &&
                            v[x - 1][y] == nullptr;
 
     const bool right_free =
-        x != v.size() && (offsety == 0 || v[x + 1][y + offsety] == nullptr) &&
+        x + 1 < WIDTH_R && (offsety == 0 || v[x + 1][y + offsety] == nullptr) &&
         v[x + 1][y + offsety] == nullptr;
 
     if (left_free || right_free) {
@@ -103,8 +106,8 @@ class Sand : public Particle {
     Sand(const int _r, const int _c) {
         this->x = _r;
         this->y = _c;
-        this->color =
-            ColorFromHSV(40.f + gen_random_float(2.f, 12.f), 1.f, 1.f);
+        this->color = ColorAlpha(
+            ColorFromHSV(40.f + gen_random_float(2.f, 12.f), 1.f, 1.f), 0);
     }
 
     void update(vector<vector<Particle *>> &original,
@@ -115,9 +118,13 @@ class Sand : public Particle {
                 original[x][y] = nullptr;
                 original[x][y + 1] = this;
                 this->y = this->y + 1;
-            } else if (std::optional<std::pair<int, int>> random_left_right =
-                           rand_available_neighbor(x, y, 1, old);
-                       random_left_right.has_value()) {
+
+                return;
+            }
+
+            if (std::optional<std::pair<int, int>> random_left_right =
+                    rand_available_neighbor(x, y, 1, old);
+                random_left_right.has_value()) {
                 const int nx = random_left_right.value().first;
                 const int ny = random_left_right.value().second;
 
@@ -125,6 +132,8 @@ class Sand : public Particle {
                 original[nx][ny] = this;
                 this->x = nx;
                 this->y = ny;
+
+                return;
             }
         }
 
@@ -135,49 +144,60 @@ class Sand : public Particle {
 
 class Water : public Particle {
   public:
-    Water(const int _r, const int _c) {
-        this->x = _r;
-        this->y = _c;
+    Water(const int _x, const int _y) {
+        this->x = _x;
+        this->y = _y;
         this->color = BLUE;
     }
 
     void update(vector<vector<Particle *>> &original,
                 vector<vector<Particle *>> &old) {
-
         if (y + 1 < HEIGHT_R) {
             // move down if a spot is available
-            if (!old[x][y + 1]) {
+            if (old[x][y + 1] == nullptr) {
+
                 original[x][y] = nullptr;
                 original[x][y + 1] = this;
                 this->y = this->y + 1;
+
+                return;
             } else if (std::optional<std::pair<int, int>> random_left_right =
                            rand_available_neighbor(x, y, 1, old);
                        random_left_right.has_value()) {
-                const int nr = random_left_right.value().first;
-                const int nc = random_left_right.value().second;
+                const int nx = random_left_right.value().first;
+                const int ny = random_left_right.value().second;
 
                 original[x][y] = nullptr;
-                original[nr][nc] = this;
-                this->x = nr;
-                this->y = nc;
-            } else if (std::optional<std::pair<int, int>> random_left_right =
-                           rand_available_neighbor(x, y, 0, old);
-                       random_left_right.has_value()) {
-                const int nr = random_left_right.value().first;
-                const int nc = random_left_right.value().second;
+                original[nx][ny] = this;
+                this->x = nx;
+                this->y = ny;
 
-                original[x][y] = nullptr;
-                original[nr][nc] = this;
-                this->x = nr;
-                this->y = nc;
+                // std::cout<<"Sometihng\n";
+
+                return;
             }
-            // FIXME: Change the update such that the water keeps moving the
-            // same direction untill it can and not change the direction mid way
-            // due to randomness
+        }
+
+        if (std::optional<std::pair<int, int>> random_left_right =
+                rand_available_neighbor(x, y, 0, old);
+            random_left_right.has_value()) {
+
+            const int nx = random_left_right.value().first;
+            const int ny = random_left_right.value().second;
+
+            original[x][y] = nullptr;
+            original[nx][ny] = this;
+
+            this->x = nx;
+            this->y = ny;
+
+            return;
         }
 
         original[this->x][this->y] =
             this; // otherwise just stay where we were before
+
+        assert(original[x][y] != nullptr);
     }
 };
 

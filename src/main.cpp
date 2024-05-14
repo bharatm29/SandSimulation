@@ -1,4 +1,6 @@
 #include "./particle.cpp"
+#include <cassert>
+#include <iostream>
 #include <raylib.h>
 #include <vector>
 
@@ -48,7 +50,8 @@ int main() {
 
     bool eraseMode = false;
     ParticleType selectedParticle = SAND;
-    unsigned int frameCounter = 0;
+
+    long long waterParticles = 0;
 
     vector<vector<Particle *>> v(COLS, vector<Particle *>(ROWS, nullptr));
 
@@ -86,18 +89,20 @@ int main() {
                 }
 
                 for (int x = cellx;
-                     x < WIDTH && x < cellx + PARTICLE_SPAWN_RADIUS; x+=2) {
+                     x < WIDTH && x < cellx + PARTICLE_SPAWN_RADIUS; x += 2) {
                     for (int y = celly;
-                         y < HEIGHT && y < celly + PARTICLE_SPAWN_RADIUS; y+=2) {
+                         y < HEIGHT && y < celly + PARTICLE_SPAWN_RADIUS;
+                         y += 2) {
                         if (eraseMode) {
                             v[x][y] = nullptr;
-                        } else {
+                        } else if (v[x][y] == nullptr) {
                             switch (selectedParticle) {
                             case SAND:
                                 v[x][y] = new Sand(x, y);
                                 break;
                             case WATER:
                                 v[x][y] = new Water(x, y);
+                                waterParticles++;
                                 break;
                             case SMOKE:
                                 v[x][y] = new Smoke(x, y);
@@ -125,6 +130,10 @@ int main() {
                 }
             } else {
                 v = updateState(v);
+            }
+
+            if (IsKeyPressed(KEY_RIGHT_SHIFT)) {
+                std::cout<<waterParticles<<"\n";
             }
         }
 
