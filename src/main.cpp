@@ -1,5 +1,4 @@
 #include "./particle.cpp"
-#include <cassert>
 #include <raylib.h>
 #include <string>
 #include <vector>
@@ -16,18 +15,18 @@ using std::vector;
 
 #define DEBUG_MODE false
 
-vector<vector<Particle *>> updateState(vector<vector<Particle *>> &vCopy) {
-    vector<vector<Particle *>> v(COLS, vector<Particle *>(ROWS, nullptr));
+vector<vector<Particle *>> updateState(vector<vector<Particle *>> &old_state) {
+    vector<vector<Particle *>> next_state(COLS, vector<Particle *>(ROWS, nullptr));
 
     for (int c = 0; c < COLS; c++) {
         for (int r = 0; r < ROWS; r++) {
-            if (vCopy[c][r] != nullptr) {
-                vCopy[c][r]->update(v, vCopy);
+            if (old_state[c][r] != nullptr) {
+                old_state[c][r]->update(next_state, old_state);
             }
         }
     }
 
-    return v;
+    return next_state;
 }
 
 void set_keymaps(ParticleType &selectedParticle) {
