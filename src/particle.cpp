@@ -256,10 +256,11 @@ class Solid : public Particle {
                 vector<vector<Particle *>> &old) {
 
         // move down if a spot is available
-        if (m_x + 1 < HEIGHT_R && !old[m_x + 1][m_y]) {
+        if (m_y + 1 < HEIGHT_R && !old[m_x][m_y + 1] &&
+            !original[m_x][m_y + 1]) {
             original[m_x][m_y] = nullptr;
-            original[m_x + 1][m_y] = this;
-            this->m_x = this->m_x + 1;
+            original[m_x][m_y + 1] = this;
+            this->m_y = this->m_y + 1;
         } else { // do nothing
             original[m_x][m_y] =
                 this; // otherwise just stay where we were before

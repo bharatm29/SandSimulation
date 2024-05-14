@@ -1,6 +1,5 @@
 #include "./particle.cpp"
 #include <raylib.h>
-#include <string>
 #include <vector>
 
 using std::vector;
@@ -50,8 +49,6 @@ int main() {
     bool eraseMode = false;
     ParticleType selectedParticle = SAND;
 
-    long long particles = 0;
-
     vector<vector<Particle *>> v(COLS, vector<Particle *>(ROWS, nullptr));
 
     while (!WindowShouldClose()) {
@@ -95,7 +92,6 @@ int main() {
                         if (eraseMode) {
                             v[x][y] = nullptr;
                         } else if (v[x][y] == nullptr) {
-                            particles++;
                             switch (selectedParticle) {
                             case SAND:
                                 v[x][y] = new Sand(x, y);
@@ -130,8 +126,6 @@ int main() {
             } else {
                 v = updateState(v);
             }
-
-            DrawText(std::to_string(particles).c_str(), 20, 20, 25, RED);
         }
 
         EndDrawing();
