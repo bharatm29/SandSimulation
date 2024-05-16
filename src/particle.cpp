@@ -45,14 +45,14 @@ rand_available_neighbor(const int x, const int y, const int offsety,
     // source: https://github.com/JMS55/sandbox/blob/master/src/behavior.rs
     const bool left_free =
         x - 1 >= 0 &&
-        (offsety == 0 || (old_state[x - 1][y + offsety] == nullptr &&
-                          next_state[x - 1][y + offsety] == nullptr)) &&
+        (offsety == 0 ||
+         isEmptyCell(x - 1, y + offsety, old_state, next_state)) &&
         (isEmptyCell(x - 1, y, old_state, next_state));
 
     const bool right_free =
         x + 1 < WIDTH_R &&
-        (offsety == 0 || (old_state[x + 1][y + offsety] == nullptr &&
-                          next_state[x + 1][y + offsety] == nullptr)) &&
+        (offsety == 0 ||
+         isEmptyCell(x + 1, y + offsety, old_state, next_state)) &&
         (isEmptyCell(x + 1, y, old_state, next_state));
 
     if (left_free || right_free) {
@@ -76,11 +76,21 @@ rand_available_neighbor(const int x, const int y, const int offsety,
     }
 }
 
+enum ParticleType {
+    SAND,
+    WATER,
+    SMOKE,
+    SOLID,
+};
+
 class Particle {
   protected:
     int m_x;
     int m_y;
-    Color color;
+    Color m_color;
+
+  public:
+    ParticleType m_type;
 
   public:
     Particle() {}
@@ -96,18 +106,11 @@ class Particle {
         DrawRectangleV(position, size, this->color);
         */
 
-        DrawPixel(this->m_x, this->m_y, this->color);
+        DrawPixel(this->m_x, this->m_y, this->m_color);
     }
 
     void virtual update(vector<vector<Particle *>> &next_state,
                         vector<vector<Particle *>> &old_state) = 0;
-};
-
-enum ParticleType {
-    SAND,
-    WATER,
-    SMOKE,
-    SOLID,
 };
 
 class Sand : public Particle {
@@ -115,8 +118,9 @@ class Sand : public Particle {
     Sand(const int _r, const int _c) {
         this->m_x = _r;
         this->m_y = _c;
-        this->color = ColorAlpha(
+        this->m_color = ColorAlpha(
             ColorFromHSV(40.f + gen_random_float(2.f, 12.f), 1.f, 1.f), 255.f);
+        this->m_type = SAND;
     }
 
     void update(vector<vector<Particle *>> &next_state,
@@ -156,7 +160,8 @@ class Water : public Particle {
     Water(const int _x, const int _y) {
         this->m_x = _x;
         this->m_y = _y;
-        this->color = BLUE;
+        this->m_color = BLUE;
+        this->m_type = WATER;
     }
 
     void update(vector<vector<Particle *>> &next_state,
@@ -217,9 +222,10 @@ class Smoke : public Particle {
         this->m_x = _r;
         this->m_y = _c;
         // 34°, 38%, 83%
-        this->color = ColorAlpha(
+        this->m_color = ColorAlpha(
             ColorFromHSV(30.f + gen_random_float(2.f, 12.f), .38f, .83f),
             gen_random_float(.15f, .20f));
+        this->m_type = SMOKE;
     }
 
     void update(vector<vector<Particle *>> &next_state,
@@ -232,7 +238,8 @@ class Smoke : public Particle {
                 next_state[m_x][m_y - 1] = this;
                 this->m_y = this->m_y - 1;
             } else if (std::optional<std::pair<int, int>> random_left_right =
-                           rand_available_neighbor(m_x, m_y, -1, old_state, next_state);
+                           rand_available_neighbor(m_x, m_y, -1, old_state,
+                                                   next_state);
                        random_left_right.has_value()) {
                 const int nr = random_left_right.value().first;
                 const int nc = random_left_right.value().second;
@@ -254,14 +261,16 @@ class Solid : public Particle {
         this->m_x = _r;
         this->m_y = _c;
         // 20°, 70%, 50%
-        this->color = ColorFromHSV(20.f, .70f, .50f);
+        this->m_color = ColorFromHSV(20.f, .70f, .50f);
+        this->m_type = SOLID;
     }
 
     void update(vector<vector<Particle *>> &next_state,
                 vector<vector<Particle *>> &old_state) {
 
         // move down if a spot is available
-        if (m_y + 1 < HEIGHT_R && isEmptyCell(m_x, m_y + 1, old_state, next_state)) {
+        if (m_y + 1 < HEIGHT_R &&
+            isEmptyCell(m_x, m_y + 1, old_state, next_state)) {
             next_state[m_x][m_y] = nullptr;
             next_state[m_x][m_y + 1] = this;
             this->m_y = this->m_y + 1;

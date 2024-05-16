@@ -7,7 +7,7 @@ using std::vector;
 #define WIDTH 800
 #define HEIGHT 600
 
-#define PARTICLE_SPAWN_RADIUS 40
+#define PARTICLE_SPAWN_RADIUS 10
 
 #define COLS WIDTH  /* / CELL_WIDTH */
 #define ROWS HEIGHT /* / CELL_HEIGHT */
