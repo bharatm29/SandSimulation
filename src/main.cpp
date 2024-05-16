@@ -15,7 +15,8 @@ using std::vector;
 #define DEBUG_MODE false
 
 vector<vector<Particle *>> updateState(vector<vector<Particle *>> &old_state) {
-    vector<vector<Particle *>> next_state(COLS, vector<Particle *>(ROWS, nullptr));
+    vector<vector<Particle *>> next_state(COLS,
+                                          vector<Particle *>(ROWS, nullptr));
 
     for (int c = 0; c < COLS; c++) {
         for (int r = 0; r < ROWS; r++) {
@@ -49,7 +50,8 @@ int main() {
     bool eraseMode = false;
     ParticleType selectedParticle = SAND;
 
-    vector<vector<Particle *>> v(COLS, vector<Particle *>(ROWS, nullptr));
+    vector<vector<Particle *>> particles(COLS,
+                                         vector<Particle *>(ROWS, nullptr));
 
     while (!WindowShouldClose()) {
         BeginDrawing();
@@ -57,53 +59,49 @@ int main() {
         {
             ClearBackground(BLACK);
 
+            // enable erase mode when LSHIFT is being pressed down
             if (IsKeyDown(KEY_LEFT_SHIFT)) {
                 eraseMode = true;
             } else {
                 eraseMode = false;
             }
 
+            // clear the particles on 'enter'
             if (IsKeyPressed(KEY_ENTER)) {
-                v.clear();
-                v = vector<vector<Particle *>>(
+                particles.clear();
+                particles = vector<vector<Particle *>>(
                     COLS, vector<Particle *>(ROWS, nullptr));
             }
 
+            // set keymaps to draw different particles
             set_keymaps(selectedParticle);
 
             if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-                // const int cellx = GetMouseX() / CELL_WIDTH;
-                // const int celly = GetMouseY() / CELL_HEIGHT;
-
                 const int cellx = GetMouseX();
                 const int celly = GetMouseY();
 
-                if (cellx < 0 || celly < 0 || cellx >= WIDTH ||
-                    celly >= HEIGHT) { // check if the cells are in bound or not
-                                       // FIXME: REDUNDANT?
-                    break;
-                }
-
+                // draw particles in a circle with center at the mouse (x, y) and predefined radius
                 for (int x = cellx;
                      x < WIDTH && x < cellx + PARTICLE_SPAWN_RADIUS; x += 2) {
                     for (int y = celly;
                          y < HEIGHT && y < celly + PARTICLE_SPAWN_RADIUS;
                          y += 2) {
                         if (eraseMode) {
-                            v[x][y] = nullptr;
-                        } else if (v[x][y] == nullptr) {
+                            delete particles[x][y];
+                            particles[x][y] = nullptr;
+                        } else if (particles[x][y] == nullptr) {
                             switch (selectedParticle) {
                             case SAND:
-                                v[x][y] = new Sand(x, y);
+                                particles[x][y] = new Sand(x, y);
                                 break;
                             case WATER:
-                                v[x][y] = new Water(x, y);
+                                particles[x][y] = new Water(x, y);
                                 break;
                             case SMOKE:
-                                v[x][y] = new Smoke(x, y);
+                                particles[x][y] = new Smoke(x, y);
                                 break;
                             case SOLID:
-                                v[x][y] = new Solid(x, y);
+                                particles[x][y] = new Solid(x, y);
                                 break;
                             }
                         }
@@ -111,20 +109,22 @@ int main() {
                 }
             }
 
+            // draw each particle
             for (int c = 0; c < COLS; c++) {
                 for (int r = 0; r < ROWS; r++) {
-                    if (v[c][r] != nullptr) {
-                        v[c][r]->draw();
+                    if (particles[c][r] != nullptr) {
+                        particles[c][r]->draw();
                     }
                 }
             }
 
+            // if the debug mode is on, update on pressing down 'e' else call update every time
             if (DEBUG_MODE) {
                 if (IsKeyDown(KEY_E)) {
-                    v = updateState(v);
+                    particles = updateState(particles);
                 }
             } else {
-                v = updateState(v);
+                particles = updateState(particles);
             }
         }
 

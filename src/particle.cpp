@@ -1,5 +1,3 @@
-#include <cassert>
-#include <cstdlib>
 #include <functional>
 #include <optional>
 #include <random>
@@ -14,6 +12,7 @@ using std::vector;
 #define HEIGHT_R GetScreenHeight()
 
 float gen_random_float(float min, float max) {
+    // source: https://stackoverflow.com/a/78276914
     typedef std::mt19937 Engine;
     typedef std::uniform_real_distribution<float> Distribution;
 
@@ -31,25 +30,30 @@ int gen_random_int(int min, int max) {
     return r();
 }
 
-class Particle; // Forward declaration of Particle class
+class Particle; // Forward declaration of abstract Particle class
 
-// I stole(yes) this function from:
-// https://github.com/JMS55/sandbox/blob/master/src/behavior.rs
+bool isEmptyCell(const int x, const int y,
+                 vector<vector<Particle *>> &old_state,
+                 vector<vector<Particle *>> &next_state) {
+    return (old_state[x][y] == nullptr && next_state[x][y] == nullptr);
+}
+
 std::optional<std::pair<int, int>>
 rand_available_neighbor(const int x, const int y, const int offsety,
                         vector<vector<Particle *>> &old_state,
                         vector<vector<Particle *>> &next_state) {
+    // source: https://github.com/JMS55/sandbox/blob/master/src/behavior.rs
     const bool left_free =
         x - 1 >= 0 &&
         (offsety == 0 || (old_state[x - 1][y + offsety] == nullptr &&
                           next_state[x - 1][y + offsety] == nullptr)) &&
-        (old_state[x - 1][y] == nullptr && next_state[x - 1][y] == nullptr);
+        (isEmptyCell(x - 1, y, old_state, next_state));
 
     const bool right_free =
         x + 1 < WIDTH_R &&
         (offsety == 0 || (old_state[x + 1][y + offsety] == nullptr &&
                           next_state[x + 1][y + offsety] == nullptr)) &&
-        (next_state[x + 1][y] == nullptr && old_state[x + 1][y] == nullptr);
+        (isEmptyCell(x + 1, y, old_state, next_state));
 
     if (left_free || right_free) {
         int newX = x;
@@ -80,6 +84,7 @@ class Particle {
 
   public:
     Particle() {}
+    virtual ~Particle() {}
 
     void draw() {
         /* FIXME: REDUNDANT!!!
@@ -94,8 +99,8 @@ class Particle {
         DrawPixel(this->m_x, this->m_y, this->color);
     }
 
-    void virtual update(vector<vector<Particle *>> &original,
-                        vector<vector<Particle *>> &copy) = 0;
+    void virtual update(vector<vector<Particle *>> &next_state,
+                        vector<vector<Particle *>> &old_state) = 0;
 };
 
 enum ParticleType {
@@ -114,26 +119,26 @@ class Sand : public Particle {
             ColorFromHSV(40.f + gen_random_float(2.f, 12.f), 1.f, 1.f), 255.f);
     }
 
-    void update(vector<vector<Particle *>> &original,
-                vector<vector<Particle *>> &old) {
+    void update(vector<vector<Particle *>> &next_state,
+                vector<vector<Particle *>> &old_state) {
         if (m_y + 1 < HEIGHT_R) {
             // move down if a spot is available
-            if (!old[m_x][m_y + 1] && !original[m_x][m_y + 1]) {
-                original[m_x][m_y] = nullptr;
-                original[m_x][m_y + 1] = this;
+            if (isEmptyCell(m_x, m_y + 1, old_state, next_state)) {
+                next_state[m_x][m_y] = nullptr;
+                next_state[m_x][m_y + 1] = this;
                 this->m_y = this->m_y + 1;
 
                 return;
             }
 
             if (std::optional<std::pair<int, int>> random_left_right =
-                    rand_available_neighbor(m_x, m_y, 1, old, original);
+                    rand_available_neighbor(m_x, m_y, 1, old_state, next_state);
                 random_left_right.has_value()) {
                 const int nx = random_left_right.value().first;
                 const int ny = random_left_right.value().second;
 
-                original[m_x][m_y] = nullptr;
-                original[nx][ny] = this;
+                next_state[m_x][m_y] = nullptr;
+                next_state[nx][ny] = this;
                 this->m_x = nx;
                 this->m_y = ny;
 
@@ -141,7 +146,7 @@ class Sand : public Particle {
             }
         }
 
-        original[this->m_x][this->m_y] =
+        next_state[this->m_x][this->m_y] =
             this; // otherwise just stay where we were before
     }
 };
@@ -158,7 +163,7 @@ class Water : public Particle {
                 vector<vector<Particle *>> &old_state) {
         if (m_y + 1 < HEIGHT_R) {
             // move down if a spot is available
-            if (!old_state[m_x][m_y + 1] && !next_state[m_x][m_y + 1]) {
+            if (isEmptyCell(m_x, m_y + 1, old_state, next_state)) {
 
                 // next_state[m_x][m_y] = nullptr;
                 next_state[m_x][m_y + 1] = this;
@@ -202,7 +207,7 @@ class Water : public Particle {
         next_state[this->m_x][this->m_y] =
             this; // otherwise just stay where we were before
 
-        assert(next_state[m_x][m_y] != nullptr);
+        // FIXME: (REDUNDANT??) assert(next_state[m_x][m_y] != nullptr);
     }
 };
 
@@ -217,29 +222,29 @@ class Smoke : public Particle {
             gen_random_float(.15f, .20f));
     }
 
-    void update(vector<vector<Particle *>> &original,
-                vector<vector<Particle *>> &old) {
+    void update(vector<vector<Particle *>> &next_state,
+                vector<vector<Particle *>> &old_state) {
 
         if (m_y - 1 >= 0) {
             // move up if a spot is available
-            if (!old[m_x][m_y - 1]) {
-                original[m_x][m_y] = nullptr;
-                original[m_x][m_y - 1] = this;
+            if (isEmptyCell(m_x, m_y - 1, old_state, next_state)) {
+                next_state[m_x][m_y] = nullptr;
+                next_state[m_x][m_y - 1] = this;
                 this->m_y = this->m_y - 1;
             } else if (std::optional<std::pair<int, int>> random_left_right =
-                           rand_available_neighbor(m_x, m_y, -1, old, original);
+                           rand_available_neighbor(m_x, m_y, -1, old_state, next_state);
                        random_left_right.has_value()) {
                 const int nr = random_left_right.value().first;
                 const int nc = random_left_right.value().second;
 
-                original[m_x][m_y] = nullptr;
-                original[nr][nc] = this;
+                next_state[m_x][m_y] = nullptr;
+                next_state[nr][nc] = this;
                 this->m_x = nr;
                 this->m_y = nc;
             }
         }
 
-        original[m_x][m_y] = this; // otherwise just stay where we were before
+        next_state[m_x][m_y] = this; // otherwise just stay where we were before
     }
 };
 
@@ -252,17 +257,16 @@ class Solid : public Particle {
         this->color = ColorFromHSV(20.f, .70f, .50f);
     }
 
-    void update(vector<vector<Particle *>> &original,
-                vector<vector<Particle *>> &old) {
+    void update(vector<vector<Particle *>> &next_state,
+                vector<vector<Particle *>> &old_state) {
 
         // move down if a spot is available
-        if (m_y + 1 < HEIGHT_R && !old[m_x][m_y + 1] &&
-            !original[m_x][m_y + 1]) {
-            original[m_x][m_y] = nullptr;
-            original[m_x][m_y + 1] = this;
+        if (m_y + 1 < HEIGHT_R && isEmptyCell(m_x, m_y + 1, old_state, next_state)) {
+            next_state[m_x][m_y] = nullptr;
+            next_state[m_x][m_y + 1] = this;
             this->m_y = this->m_y + 1;
         } else { // do nothing
-            original[m_x][m_y] =
+            next_state[m_x][m_y] =
                 this; // otherwise just stay where we were before
         }
     }
