@@ -1,5 +1,5 @@
 #include "./particle.cpp"
-#include "./ffmpeg.c"
+#include "./ffmpeg.cpp"
 #include <raylib.h>
 #include <vector>
 #include <unistd.h>
@@ -46,7 +46,7 @@ void set_keymaps(ParticleType &selectedParticle) {
 }
 
 int main() {
-    FFMPEG* ffmpeg = ffmpeg_start_rendering(WIDTH, HEIGHT, FPS);
+    FFMPEG* ffmpeg = ffmpeg_start_rendering(WIDTH, HEIGHT, FPS, 0);
 
     SetConfigFlags(FLAG_MSAA_4X_HINT);
     InitWindow(WIDTH, HEIGHT, "Sand Simulation");
@@ -54,6 +54,7 @@ int main() {
     SetTargetFPS(FPS);
 
     bool eraseMode = false;
+    bool renderMode = false;
     ParticleType selectedParticle = SAND;
 
     vector<vector<Particle *>> particles(COLS,
@@ -64,7 +65,7 @@ int main() {
         // BeginTextureMode(screen);
 
         {
-            ClearBackground(BLACK);
+            ClearBackground(WHITE);
 
             // enable erase mode when LSHIFT is being pressed down
             if (IsKeyDown(KEY_LEFT_SHIFT)) {
@@ -78,6 +79,11 @@ int main() {
                 particles.clear();
                 particles = vector<vector<Particle *>>(
                     COLS, vector<Particle *>(ROWS, nullptr));
+            }
+
+            //start the render
+            if (IsKeyPressed(KEY_R)) {
+                renderMode = !renderMode;
             }
 
             // set keymaps to draw different particles
@@ -139,9 +145,11 @@ int main() {
 
         EndDrawing();
 
-        Image image = LoadImageFromScreen();
-        ffmpeg_send_frame(ffmpeg, image.data, WIDTH, HEIGHT);
-        UnloadImage(image);
+        if (renderMode) {
+            Image image = LoadImageFromScreen();
+            ffmpeg_send_frame(ffmpeg, image.data, WIDTH, HEIGHT);
+            UnloadImage(image);
+        }
     }
 
     CloseWindow();

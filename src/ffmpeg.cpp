@@ -9,6 +9,7 @@
 #include <string.h>
 #include <errno.h>
 
+#include <string>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -16,12 +17,23 @@
 #define READ_END 0
 #define WRITE_END 1
 
+std::string gen_filename(const uint counter) {
+    if (counter < 1) {
+        return "output.mp4";
+    }
+
+    std::string str = "output-" + std::to_string(counter - 1) + ".mp4";
+
+    return str;
+}
+
 typedef struct {
     int pid;
     int pipe;
+    int counter;
 } FFMPEG;
 
-FFMPEG *ffmpeg_start_rendering(size_t width, size_t height, size_t fps)
+FFMPEG *ffmpeg_start_rendering(size_t width, size_t height, size_t fps, const uint counter = 0)
 {
     int pipefd[2];
 
@@ -64,7 +76,7 @@ FFMPEG *ffmpeg_start_rendering(size_t width, size_t height, size_t fps)
             "-c:a", "aac",
             "-ab", "200k",
             "-pix_fmt", "yuv420p",
-            "output.mp4",
+            gen_filename(counter).c_str(),
 
             NULL
         );
@@ -78,9 +90,11 @@ FFMPEG *ffmpeg_start_rendering(size_t width, size_t height, size_t fps)
     close(pipefd[READ_END]);
 
     FFMPEG *ffmpeg = (FFMPEG*)malloc(sizeof(FFMPEG));
-    assert(ffmpeg != NULL && "Buy MORE RAM lol!!");
+    assert(ffmpeg != NULL && "Couldn't allocate enough memory for strcut FFMPEG");
+
     ffmpeg->pid = child;
     ffmpeg->pipe = pipefd[WRITE_END];
+
     return ffmpeg;
 }
 
