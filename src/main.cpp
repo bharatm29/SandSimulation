@@ -1,6 +1,8 @@
 #include "./particle.cpp"
+#include "./ffmpeg.c"
 #include <raylib.h>
 #include <vector>
+#include <unistd.h>
 
 using std::vector;
 
@@ -11,6 +13,8 @@ using std::vector;
 
 #define COLS WIDTH  /* / CELL_WIDTH */
 #define ROWS HEIGHT /* / CELL_HEIGHT */
+
+#define FPS 120
 
 #define DEBUG_MODE false
 
@@ -42,10 +46,12 @@ void set_keymaps(ParticleType &selectedParticle) {
 }
 
 int main() {
+    FFMPEG* ffmpeg = ffmpeg_start_rendering(WIDTH, HEIGHT, FPS);
+
     SetConfigFlags(FLAG_MSAA_4X_HINT);
     InitWindow(WIDTH, HEIGHT, "Sand Simulation");
 
-    SetTargetFPS(120);
+    SetTargetFPS(FPS);
 
     bool eraseMode = false;
     ParticleType selectedParticle = SAND;
@@ -55,6 +61,7 @@ int main() {
 
     while (!WindowShouldClose()) {
         BeginDrawing();
+        // BeginTextureMode(screen);
 
         {
             ClearBackground(BLACK);
@@ -80,7 +87,8 @@ int main() {
                 const int cellx = GetMouseX();
                 const int celly = GetMouseY();
 
-                // draw particles in a circle with center at the mouse (x, y) and predefined radius
+                // draw particles in a circle with center at the mouse (x, y)
+                // and predefined radius
                 for (int x = cellx;
                      x < WIDTH && x < cellx + PARTICLE_SPAWN_RADIUS; x += 2) {
                     for (int y = celly;
@@ -118,7 +126,8 @@ int main() {
                 }
             }
 
-            // if the debug mode is on, update on pressing down 'e' else call update every time
+            // if the debug mode is on, update on pressing down 'e' else call
+            // update every time
             if (DEBUG_MODE) {
                 if (IsKeyDown(KEY_E)) {
                     particles = updateState(particles);
@@ -129,8 +138,14 @@ int main() {
         }
 
         EndDrawing();
+
+        Image image = LoadImageFromScreen();
+        ffmpeg_send_frame(ffmpeg, image.data, WIDTH, HEIGHT);
+        UnloadImage(image);
     }
 
     CloseWindow();
+
+    ffmpeg_end_rendering(ffmpeg);
     return 0;
 }
