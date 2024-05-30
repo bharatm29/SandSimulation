@@ -42,7 +42,6 @@ std::optional<std::pair<int, int>>
 rand_available_neighbor(const int x, const int y, const int offsety,
                         vector<vector<Particle *>> &old_state,
                         vector<vector<Particle *>> &next_state) {
-    // source: https://github.com/JMS55/sandbox/blob/master/src/behavior.rs
     const bool left_free =
         x - 1 >= 0 &&
         (offsety == 0 ||

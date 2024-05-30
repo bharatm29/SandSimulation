@@ -1,15 +1,13 @@
-#include "./particle.cpp"
 #include "./ffmpeg.cpp"
+#include "./particle.cpp"
 #include <raylib.h>
-#include <vector>
 #include <unistd.h>
+#include <vector>
 
 using std::vector;
 
 #define WIDTH 800
 #define HEIGHT 600
-
-#define PARTICLE_SPAWN_RADIUS 10
 
 #define COLS WIDTH  /* / CELL_WIDTH */
 #define ROWS HEIGHT /* / CELL_HEIGHT */
@@ -46,7 +44,7 @@ void set_keymaps(ParticleType &selectedParticle) {
 }
 
 int main() {
-    FFMPEG* ffmpeg = ffmpeg_start_rendering(WIDTH, HEIGHT, FPS, 0);
+    FFMPEG *ffmpeg = ffmpeg_start_rendering(WIDTH, HEIGHT, FPS, 0);
 
     SetConfigFlags(FLAG_MSAA_4X_HINT);
     InitWindow(WIDTH, HEIGHT, "Sand Simulation");
@@ -57,6 +55,8 @@ int main() {
     bool renderMode = false;
     ParticleType selectedParticle = SAND;
 
+    unsigned int particle_spawn_radius = 10;
+
     vector<vector<Particle *>> particles(COLS,
                                          vector<Particle *>(ROWS, nullptr));
 
@@ -65,7 +65,7 @@ int main() {
         // BeginTextureMode(screen);
 
         {
-            ClearBackground(WHITE);
+            ClearBackground(BLACK);
 
             // enable erase mode when LSHIFT is being pressed down
             if (IsKeyDown(KEY_LEFT_SHIFT)) {
@@ -81,10 +81,24 @@ int main() {
                     COLS, vector<Particle *>(ROWS, nullptr));
             }
 
-            //start the render
+            // start the render
             if (IsKeyPressed(KEY_R)) {
                 renderMode = !renderMode;
             }
+
+            // increase/decrease particle brush size
+            if (IsKeyPressed(KEY_MINUS)) {
+                if (particle_spawn_radius > 5) {
+                    particle_spawn_radius -= 5;
+                }
+            }
+            if (IsKeyDown(KEY_LEFT_SHIFT) && IsKeyPressed(KEY_EQUAL)) {
+                if (particle_spawn_radius < 30) {
+                    particle_spawn_radius += 5;
+                }
+            }
+
+            DrawCircleLines(GetMouseX(), GetMouseY(), particle_spawn_radius, WHITE);
 
             // set keymaps to draw different particles
             set_keymaps(selectedParticle);
@@ -94,11 +108,12 @@ int main() {
                 const int celly = GetMouseY();
 
                 // draw particles in a circle with center at the mouse (x, y)
-                // and predefined radius
+                // and predefined radius.
+                // FIXME: We are only drawing for one sector of the circle. Fix to draw for the whole sector
                 for (int x = cellx;
-                     x < WIDTH && x < cellx + PARTICLE_SPAWN_RADIUS; x += 2) {
+                     x < WIDTH && x < cellx + particle_spawn_radius; x += 2) {
                     for (int y = celly;
-                         y < HEIGHT && y < celly + PARTICLE_SPAWN_RADIUS;
+                         y < HEIGHT && y < celly + particle_spawn_radius;
                          y += 2) {
                         if (eraseMode) {
                             delete particles[x][y];
