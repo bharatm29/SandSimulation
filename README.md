@@ -23,6 +23,7 @@ This will build the project. If it does not run the executable:
 - Draw while holding `LSHIFT` to delete pixels
 - `Enter` - Clear the screen
 - `r` - toggle to send frames to ffmpeg
+- `- and +` - decrease or increase particle brush size
 
 ---
 
