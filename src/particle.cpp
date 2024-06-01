@@ -130,6 +130,7 @@ class Sand : public Particle {
                 return;
             }
 
+            // else move left or right randomly if the spot is available.
             if (std::optional<std::pair<int, int>> random_left_right =
                     rand_available_neighbor(m_x, m_y, 1, old_state, next_state);
                 random_left_right.has_value()) {

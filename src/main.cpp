@@ -10,13 +10,13 @@
 using std::vector;
 
 vector<vector<Particle *>> updateState(vector<vector<Particle *>> &old_state) {
-    vector<vector<Particle *>> next_state(COLS,
-                                          vector<Particle *>(ROWS, nullptr));
+    vector<vector<Particle *>> next_state(WIDTH,
+                                          vector<Particle *>(HEIGHT, nullptr));
 
-    for (int c = 0; c < COLS; c++) {
-        for (int r = 0; r < ROWS; r++) {
-            if (old_state[c][r] != nullptr) {
-                old_state[c][r]->update(next_state, old_state);
+    for (int x = 0; x < WIDTH; x++) {
+        for (int y = 0; y < HEIGHT; y++) {
+            if (old_state[x][y] != nullptr) {
+                old_state[x][y]->update(next_state, old_state);
             }
         }
     }
@@ -50,12 +50,11 @@ int main() {
 
     unsigned int particle_spawn_radius = 10;
 
-    vector<vector<Particle *>> particles(COLS,
-                                         vector<Particle *>(ROWS, nullptr));
+    vector<vector<Particle *>> particles(WIDTH,
+                                         vector<Particle *>(HEIGHT, nullptr));
 
     while (!WindowShouldClose()) {
         BeginDrawing();
-        // BeginTextureMode(screen);
 
         {
             ClearBackground(BLACK);
@@ -67,44 +66,47 @@ int main() {
                 eraseMode = false;
             }
 
-            // clear the particles on 'enter'
+            // clear the particles on pressing ENTER
             if (IsKeyPressed(KEY_ENTER)) {
                 particles.clear();
                 particles = vector<vector<Particle *>>(
-                    COLS, vector<Particle *>(ROWS, nullptr));
+                    WIDTH, vector<Particle *>(HEIGHT, nullptr));
             }
 
-            // start the render
+            // start the render on pressing R
             if (IsKeyPressed(KEY_R)) {
                 renderMode = !renderMode;
             }
 
-            // increase/decrease particle brush size
+            // increase/decrease particle brush size with +/-
             if (IsKeyPressed(KEY_MINUS)) {
                 if (particle_spawn_radius > 5) {
                     particle_spawn_radius -= 5;
                 }
             }
-            if (IsKeyDown(KEY_LEFT_SHIFT) && IsKeyPressed(KEY_EQUAL)) {
+            if (IsKeyDown(KEY_LEFT_SHIFT) &&
+                IsKeyPressed(KEY_EQUAL)) { // SHIFT = is +
                 if (particle_spawn_radius < 30) {
                     particle_spawn_radius += 5;
                 }
             }
 
-            DrawCircleLines(GetMouseX(), GetMouseY(), particle_spawn_radius,
-                            WHITE);
-
             // set keymaps to draw different particles
             set_keymaps(selectedParticle);
 
+            // draw particle brush circle
+            DrawCircleLines(GetMouseX(), GetMouseY(), particle_spawn_radius,
+                            WHITE);
+
+            // draw particles on LEFT CLICK
             if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
                 const int cellx = GetMouseX();
                 const int celly = GetMouseY();
 
-                // draw particles in a circle with center at the mouse (x, y)
-                // and predefined radius.
                 // FIXME: We are only drawing for one sector of the circle. Fix
                 // to draw for the whole sector
+                // Possible Fixes: https://stackoverflow.com/a/40779613
+                // https://www.reddit.com/r/askmath/comments/u81h7t/how_do_i_get_all_the_grid_points_inside_a_circle/
                 for (int x = cellx;
                      x < WIDTH && x < cellx + particle_spawn_radius; x += 2) {
                     for (int y = celly;
@@ -134,10 +136,10 @@ int main() {
             }
 
             // draw each particle
-            for (int c = 0; c < COLS; c++) {
-                for (int r = 0; r < ROWS; r++) {
-                    if (particles[c][r] != nullptr) {
-                        particles[c][r]->draw();
+            for (int x = 0; x < WIDTH; x++) {
+                for (int y = 0; y < HEIGHT; y++) {
+                    if (particles[x][y] != nullptr) {
+                        particles[x][y]->draw();
                     }
                 }
             }
@@ -155,6 +157,7 @@ int main() {
 
         EndDrawing();
 
+        // send frames to FFMPEG if in render mode
         if (renderMode) {
             Image image = LoadImageFromScreen();
             ffmpeg_send_frame(ffmpeg, image.data, WIDTH, HEIGHT);
@@ -164,6 +167,12 @@ int main() {
 
     CloseWindow();
 
+    // free all the particles before exiting
+    for (int x = 0; x < WIDTH; x++) {
+        for (int y = 0; y < HEIGHT; y++) {
+            delete particles[x][y];
+        }
+    }
+
     ffmpeg_end_rendering(ffmpeg);
-    return 0;
 }
