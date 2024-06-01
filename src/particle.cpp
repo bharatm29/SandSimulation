@@ -1,3 +1,4 @@
+#include "config.h"
 #include <functional>
 #include <optional>
 #include <random>
@@ -5,11 +6,6 @@
 #include <time.h>
 #include <vector>
 using std::vector;
-
-// Although they are always the same value, we are redefining these macros.
-// FIXME: Separate the config vars into a header files
-const int WIDTH_R = GetScreenWidth();
-const int HEIGHT_R = GetScreenHeight();
 
 float gen_random_float(float min, float max) {
     // source: https://stackoverflow.com/a/78276914
@@ -49,7 +45,7 @@ rand_available_neighbor(const int x, const int y, const int offsety,
         (isEmptyCell(x - 1, y, old_state, next_state));
 
     const bool right_free =
-        x + 1 < WIDTH_R &&
+        x + 1 < WIDTH &&
         (offsety == 0 ||
          isEmptyCell(x + 1, y + offsety, old_state, next_state)) &&
         (isEmptyCell(x + 1, y, old_state, next_state));
@@ -124,7 +120,7 @@ class Sand : public Particle {
 
     void update(vector<vector<Particle *>> &next_state,
                 vector<vector<Particle *>> &old_state) {
-        if (m_y + 1 < HEIGHT_R) {
+        if (m_y + 1 < HEIGHT) {
             // move down if a spot is available
             if (isEmptyCell(m_x, m_y + 1, old_state, next_state)) {
                 next_state[m_x][m_y] = nullptr;
@@ -165,7 +161,7 @@ class Water : public Particle {
 
     void update(vector<vector<Particle *>> &next_state,
                 vector<vector<Particle *>> &old_state) {
-        if (m_y + 1 < HEIGHT_R) {
+        if (m_y + 1 < HEIGHT) {
             // move down if a spot is available
             if (isEmptyCell(m_x, m_y + 1, old_state, next_state)) {
 
@@ -268,7 +264,7 @@ class Solid : public Particle {
                 vector<vector<Particle *>> &old_state) {
 
         // move down if a spot is available
-        if (m_y + 1 < HEIGHT_R &&
+        if (m_y + 1 < HEIGHT &&
             isEmptyCell(m_x, m_y + 1, old_state, next_state)) {
             next_state[m_x][m_y] = nullptr;
             next_state[m_x][m_y + 1] = this;

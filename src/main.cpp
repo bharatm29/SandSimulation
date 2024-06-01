@@ -1,20 +1,13 @@
-#include "./ffmpeg.cpp"
-#include "./particle.cpp"
+#include "ffmpeg.cpp"
+#include "particle.cpp"
 #include <raylib.h>
 #include <unistd.h>
 #include <vector>
 
+// TODO: #include "config.h"; So I included it once in particle.cpp, since it
+// was giving me redefinition warning.
+
 using std::vector;
-
-const int WIDTH = 800;
-const int HEIGHT = 600;
-
-const int COLS = WIDTH;  /* = / CELL_WIDTH */
-const int ROWS = HEIGHT; /* / CELL_HEIGHT */
-
-const int FPS = 120;
-
-const bool DEBUG_MODE = false;
 
 vector<vector<Particle *>> updateState(vector<vector<Particle *>> &old_state) {
     vector<vector<Particle *>> next_state(COLS,
@@ -98,7 +91,8 @@ int main() {
                 }
             }
 
-            DrawCircleLines(GetMouseX(), GetMouseY(), particle_spawn_radius, WHITE);
+            DrawCircleLines(GetMouseX(), GetMouseY(), particle_spawn_radius,
+                            WHITE);
 
             // set keymaps to draw different particles
             set_keymaps(selectedParticle);
@@ -109,7 +103,8 @@ int main() {
 
                 // draw particles in a circle with center at the mouse (x, y)
                 // and predefined radius.
-                // FIXME: We are only drawing for one sector of the circle. Fix to draw for the whole sector
+                // FIXME: We are only drawing for one sector of the circle. Fix
+                // to draw for the whole sector
                 for (int x = cellx;
                      x < WIDTH && x < cellx + particle_spawn_radius; x += 2) {
                     for (int y = celly;
