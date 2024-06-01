@@ -6,15 +6,15 @@
 
 using std::vector;
 
-#define WIDTH 800
-#define HEIGHT 600
+const int WIDTH = 800;
+const int HEIGHT = 600;
 
-#define COLS WIDTH  /* / CELL_WIDTH */
-#define ROWS HEIGHT /* / CELL_HEIGHT */
+const int COLS = WIDTH;  /* = / CELL_WIDTH */
+const int ROWS = HEIGHT; /* / CELL_HEIGHT */
 
-#define FPS 120
+const int FPS = 120;
 
-#define DEBUG_MODE false
+const bool DEBUG_MODE = false;
 
 vector<vector<Particle *>> updateState(vector<vector<Particle *>> &old_state) {
     vector<vector<Particle *>> next_state(COLS,

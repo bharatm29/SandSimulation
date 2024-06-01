@@ -8,8 +8,8 @@ using std::vector;
 
 // Although they are always the same value, we are redefining these macros.
 // FIXME: Separate the config vars into a header files
-#define WIDTH_R GetScreenWidth()
-#define HEIGHT_R GetScreenHeight()
+const int WIDTH_R = GetScreenWidth();
+const int HEIGHT_R = GetScreenHeight();
 
 float gen_random_float(float min, float max) {
     // source: https://stackoverflow.com/a/78276914
