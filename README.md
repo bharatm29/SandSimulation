@@ -4,6 +4,8 @@ Trying to implement a simple sand simulator (with other elements) in Raylib :)
 
 ![showcase](./showcase.png)
 
+![vid_showcase](./showcase.gif)
+
 #### Pre-requisites
 1. [Raylib](https://github.com/raysan5/raylib)
 2. [FFMPEG](https://ffmpeg.org/)
